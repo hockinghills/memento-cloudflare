@@ -219,7 +219,14 @@ export async function hybridSearchWithRRF(
       entities: entities.map((e) => ({
         name: e.name,
         entityType: e.entityType,
-        observations: JSON.parse(e.observations),
+        observations: (() => {
+          try {
+            return JSON.parse(e.observations);
+          } catch (error) {
+            console.error(`Failed to parse observations for entity ${e.name}:`, error);
+            return [];
+          }
+        })(),
         id: e.id,
         version: e.version,
         createdAt: e.createdAt,
@@ -328,7 +335,14 @@ export async function vectorSearch(
       entities: entities.map((e) => ({
         name: e.name,
         entityType: e.entityType,
-        observations: JSON.parse(e.observations),
+        observations: (() => {
+          try {
+            return JSON.parse(e.observations);
+          } catch (error) {
+            console.error(`Failed to parse observations for entity ${e.name}:`, error);
+            return [];
+          }
+        })(),
         id: e.id,
         version: e.version,
         createdAt: e.createdAt,
