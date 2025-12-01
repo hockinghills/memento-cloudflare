@@ -97,7 +97,7 @@ async function main() {
     password: config.neo4jPassword,
   });
 
-  const embedding = new VoyageEmbeddingService(config.voyageApiKey);
+  const embedding = new VoyageEmbeddingService({ apiKey: config.voyageApiKey });
 
   // Test queries that should demonstrate hybrid search strength
   const testQueries = [
