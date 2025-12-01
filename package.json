@@ -1,0 +1,24 @@
+{
+  "name": "memento-cloudflare",
+  "version": "1.0.0",
+  "description": "Memento MCP Server for Cloudflare Workers - preserving Gannon's hybrid search kung fu",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node test-vector-http.js"
+  },
+  "keywords": ["mcp", "memento", "neo4j", "knowledge-graph", "semantic-search"],
+  "author": "willie",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.51.0"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20251128.0",
+    "@modelcontextprotocol/sdk": "^1.23.0"
+  }
+}

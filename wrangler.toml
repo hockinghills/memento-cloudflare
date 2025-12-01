@@ -1,0 +1,16 @@
+name = "memento-mcp-worker"
+main = "src/index.ts"
+compatibility_date = "2025-11-30"
+
+# KV namespace for OAuth tokens
+[[kv_namespaces]]
+binding = "OAUTH_KV"
+id = "8893cd7fdcd84638b11f7c9c9c39baf5"
+
+[vars]
+NEO4J_URI = "https://2430c020.databases.neo4j.io/db/neo4j/query/v2"
+
+# Secrets (set via wrangler secret put)
+# NEO4J_USER
+# NEO4J_PASSWORD
+# VOYAGE_API_KEY
