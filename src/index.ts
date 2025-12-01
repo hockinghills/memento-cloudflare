@@ -302,25 +302,6 @@ export default {
   },
 };
 
-// For local development/testing via stdio
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const neo4j = new Neo4jHttpClient({
-    uri: process.env.NEO4J_URI!,
-    user: process.env.NEO4J_USER!,
-    password: process.env.NEO4J_PASSWORD!,
-  });
-
-  const embeddings = new VoyageEmbeddingService({
-    apiKey: process.env.VOYAGE_API_KEY!,
-    model: 'voyage-3-large',
-    dimensions: 2048,
-  });
-
-  const server = createServer(neo4j, embeddings);
-  const transport = new StdioServerTransport();
-
-  server.connect(transport).catch((error) => {
-    console.error('Server error:', error);
-    process.exit(1);
-  });
-}
+// Stdio server removed for Cloudflare Workers deployment
+// Workers use fetch handler, not stdio transport
+// For local stdio testing, use a separate entry point file
