@@ -1,7 +1,6 @@
 # CodeRabbit Configuration for Memento MCP Server (Cloudflare Workers)
 # https://docs.coderabbit.ai/configuration/
-
-version: 2
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 
 language: en-US
 

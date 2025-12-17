@@ -22,6 +22,43 @@ function parseObservations(obs: string | null | undefined): string[] {
 }
 
 /**
+ * Sanitize error messages for user-facing responses
+ * Logs full error internally, returns generic message to prevent info leakage
+ */
+function sanitizeError(error: unknown, operation: string): string {
+  const fullMessage = error instanceof Error ? error.message : String(error);
+  console.error(`${operation} failed:`, fullMessage);
+
+  // Return generic message - internal details logged server-side only
+  return `Operation failed: ${operation}`;
+}
+
+/**
+ * Audit logging for write/delete operations
+ * Provides security trail for sensitive graph modifications
+ */
+function auditLog(
+  operation: 'create' | 'update' | 'delete',
+  resourceType: 'entity' | 'relation' | 'observation',
+  user: string,
+  targets: string[],
+  outcome: 'success' | 'partial' | 'failure',
+  details?: Record<string, unknown>
+): void {
+  console.log(JSON.stringify({
+    audit: true,
+    timestamp: new Date().toISOString(),
+    operation,
+    resourceType,
+    user,
+    targets: targets.slice(0, 20), // Limit logged targets
+    targetCount: targets.length,
+    outcome,
+    ...details,
+  }));
+}
+
+/**
  * Add human-readable date fields to an entity object
  */
 function addHumanDates(entity: any): any {
@@ -110,7 +147,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           content: [
             {
               type: 'text' as const,
-              text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+              text: `**Error**: ${sanitizeError(error, 'semantic_search')}`,
             },
           ],
           isError: true,
@@ -126,7 +163,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
     'open_nodes',
     'Retrieve specific entities by their exact names, including their relations',
     {
-      names: z.array(z.string()).describe('Array of entity names to retrieve'),
+      names: z.array(z.string()).max(100).describe('Array of entity names to retrieve (max 100)'),
     },
     async ({ names }) => {
       try {
@@ -193,7 +230,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           content: [
             {
               type: 'text' as const,
-              text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+              text: `**Error**: ${sanitizeError(error, 'open_nodes')}`,
             },
           ],
           isError: true,
@@ -275,7 +312,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           content: [
             {
               type: 'text' as const,
-              text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+              text: `**Error**: ${sanitizeError(error, 'search_nodes')}`,
             },
           ],
           isError: true,
@@ -296,8 +333,8 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       entities: z.array(z.object({
         name: z.string().describe('The name of the entity'),
         entityType: z.string().describe('The type of the entity'),
-        observations: z.array(z.string()).describe('Array of observation contents'),
-      })).describe('Array of entities to create or update'),
+        observations: z.array(z.string()).max(100).describe('Array of observation contents (max 100)'),
+      })).max(50).describe('Array of entities to create or update (max 50)'),
     },
     async ({ entities }) => {
       try {
@@ -356,10 +393,19 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
             results.push({
               name: entity.name,
               entityType: entity.entityType,
-              error: error instanceof Error ? error.message : String(error),
+              error: sanitizeError(error, 'create_entity'),
             });
           }
         }
+
+        // Audit log the operation
+        const successCount = results.filter(r => !r.error).length;
+        const outcome = successCount === results.length ? 'success' : successCount > 0 ? 'partial' : 'failure';
+        auditLog('create', 'entity', props.login, entities.map(e => e.name), outcome, {
+          created: results.filter(r => r.wasCreated).length,
+          updated: results.filter(r => !r.wasCreated && !r.error).length,
+          failed: results.filter(r => r.error).length,
+        });
 
         return {
           content: [{
@@ -368,10 +414,11 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           }],
         };
       } catch (error) {
+        auditLog('create', 'entity', props.login, entities.map(e => e.name), 'failure');
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'create_entities')}`,
           }],
           isError: true,
         };
@@ -392,7 +439,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
         relationType: z.string().describe('Type of the relation'),
         strength: z.number().optional().describe('Optional strength (0-1)'),
         confidence: z.number().optional().describe('Optional confidence (0-1)'),
-      })).describe('Array of relations to create'),
+      })).max(100).describe('Array of relations to create (max 100)'),
     },
     async ({ relations }) => {
       try {
@@ -454,6 +501,14 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           }
         }
 
+        // Audit log the operation
+        const successCount = createdRelations.filter(r => !r.error).length;
+        const outcome = successCount === createdRelations.length ? 'success' : successCount > 0 ? 'partial' : 'failure';
+        auditLog('create', 'relation', props.login, relations.map(r => `${r.from}->${r.to}`), outcome, {
+          created: successCount,
+          failed: createdRelations.filter(r => r.error).length,
+        });
+
         return {
           content: [{
             type: 'text' as const,
@@ -461,10 +516,11 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           }],
         };
       } catch (error) {
+        auditLog('create', 'relation', props.login, relations.map(r => `${r.from}->${r.to}`), 'failure');
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'create_relations')}`,
           }],
           isError: true,
         };
@@ -481,8 +537,8 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
     {
       observations: z.array(z.object({
         entityName: z.string().describe('Name of the entity'),
-        contents: z.array(z.string()).describe('Observation contents to add'),
-      })).describe('Array of observations to add'),
+        contents: z.array(z.string()).max(100).describe('Observation contents to add (max 100)'),
+      })).max(50).describe('Array of observations to add (max 50)'),
     },
     async ({ observations }) => {
       try {
@@ -543,6 +599,14 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           });
         }
 
+        // Audit log the operation
+        const successCount = results.filter(r => !r.error).length;
+        const outcome = successCount === results.length ? 'success' : successCount > 0 ? 'partial' : 'failure';
+        auditLog('create', 'observation', props.login, observations.map(o => o.entityName), outcome, {
+          entitiesUpdated: successCount,
+          failed: results.filter(r => r.error).length,
+        });
+
         return {
           content: [{
             type: 'text' as const,
@@ -550,10 +614,11 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           }],
         };
       } catch (error) {
+        auditLog('create', 'observation', props.login, observations.map(o => o.entityName), 'failure');
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'add_observations')}`,
           }],
           isError: true,
         };
@@ -568,7 +633,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
     'delete_entities',
     'Delete multiple entities and their relations',
     {
-      entityNames: z.array(z.string()).describe('Array of entity names to delete'),
+      entityNames: z.array(z.string()).max(100).describe('Array of entity names to delete (max 100)'),
     },
     async ({ entityNames }) => {
       try {
@@ -592,6 +657,13 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
 
         const deletedCount = result[0]?.deletedCount || 0;
 
+        // Audit log the operation
+        const outcome = deletedCount === entityNames.length ? 'success' : deletedCount > 0 ? 'partial' : 'failure';
+        auditLog('delete', 'entity', props.login, entityNames, outcome, {
+          requested: entityNames.length,
+          deleted: deletedCount,
+        });
+
         return {
           content: [{
             type: 'text' as const,
@@ -602,10 +674,11 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           }],
         };
       } catch (error) {
+        auditLog('delete', 'entity', props.login, entityNames, 'failure');
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'delete_entities')}`,
           }],
           isError: true,
         };
@@ -622,8 +695,8 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
     {
       deletions: z.array(z.object({
         entityName: z.string().describe('Name of the entity'),
-        observations: z.array(z.string()).describe('Observations to delete'),
-      })).describe('Array of deletion requests'),
+        observations: z.array(z.string()).max(100).describe('Observations to delete (max 100)'),
+      })).max(50).describe('Array of deletion requests (max 50)'),
     },
     async ({ deletions }) => {
       try {
@@ -684,6 +757,15 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           });
         }
 
+        // Audit log the operation
+        const successCount = results.filter(r => !r.error).length;
+        const totalDeleted = results.reduce((sum, r) => sum + (r.deletedCount || 0), 0);
+        const outcome = successCount === results.length ? 'success' : successCount > 0 ? 'partial' : 'failure';
+        auditLog('delete', 'observation', props.login, deletions.map(d => d.entityName), outcome, {
+          entitiesModified: successCount,
+          observationsDeleted: totalDeleted,
+        });
+
         return {
           content: [{
             type: 'text' as const,
@@ -691,10 +773,11 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           }],
         };
       } catch (error) {
+        auditLog('delete', 'observation', props.login, deletions.map(d => d.entityName), 'failure');
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'delete_observations')}`,
           }],
           isError: true,
         };
@@ -713,7 +796,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
         from: z.string().describe('Name of the source entity'),
         to: z.string().describe('Name of the target entity'),
         relationType: z.string().describe('Type of the relation'),
-      })).describe('Array of relations to delete'),
+      })).max(100).describe('Array of relations to delete (max 100)'),
     },
     async ({ relations }) => {
       try {
@@ -744,10 +827,18 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
               from: rel.from,
               to: rel.to,
               relationType: rel.relationType,
-              error: error instanceof Error ? error.message : String(error),
+              error: sanitizeError(error, 'delete_relation'),
             });
           }
         }
+
+        // Audit log the operation
+        const successCount = deletedRelations.filter(r => r.wasDeleted && !r.error).length;
+        const outcome = successCount === deletedRelations.length ? 'success' : successCount > 0 ? 'partial' : 'failure';
+        auditLog('delete', 'relation', props.login, relations.map(r => `${r.from}->${r.to}`), outcome, {
+          requested: relations.length,
+          deleted: successCount,
+        });
 
         return {
           content: [{
@@ -756,10 +847,11 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           }],
         };
       } catch (error) {
+        auditLog('delete', 'relation', props.login, relations.map(r => `${r.from}->${r.to}`), 'failure');
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'delete_relations')}`,
           }],
           isError: true,
         };
@@ -814,7 +906,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'get_relation')}`,
           }],
           isError: true,
         };
@@ -883,7 +975,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'update_relation')}`,
           }],
           isError: true,
         };
@@ -969,7 +1061,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'read_graph')}`,
           }],
           isError: true,
         };
@@ -1024,7 +1116,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'get_entity_embedding')}`,
           }],
           isError: true,
         };
@@ -1077,7 +1169,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'get_entity_history')}`,
           }],
           isError: true,
         };
@@ -1123,7 +1215,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'get_relation_history')}`,
           }],
           isError: true,
         };
@@ -1190,7 +1282,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'get_graph_at_time')}`,
           }],
           isError: true,
         };
@@ -1266,7 +1358,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
         return {
           content: [{
             type: 'text' as const,
-            text: `**Error**: ${error instanceof Error ? error.message : String(error)}`,
+            text: `**Error**: ${sanitizeError(error, 'get_decayed_graph')}`,
           }],
           isError: true,
         };

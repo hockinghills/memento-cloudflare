@@ -779,7 +779,9 @@ export async function fetchUpstreamAuthToken({
 			console.error('Token exchange timed out');
 			return [null, new Response("Token exchange timed out", { status: 504 })];
 		}
-		throw error;
+		// Handle network errors without crashing the worker
+		console.error('Token exchange failed:', error instanceof Error ? error.message : String(error));
+		return [null, new Response("Token exchange failed", { status: 502 })];
 	} finally {
 		clearTimeout(timeoutId);
 	}
