@@ -9,16 +9,34 @@
     "deploy": "wrangler deploy",
     "test": "node test-vector-http.js"
   },
-  "keywords": ["mcp", "memento", "neo4j", "knowledge-graph", "semantic-search"],
+  "keywords": [
+    "mcp",
+    "memento",
+    "neo4j",
+    "knowledge-graph",
+    "semantic-search"
+  ],
   "author": "willie",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "@types/uuid": "^11.0.0",
+    "dotenv": "^17.2.3",
     "typescript": "^5.9.3",
     "wrangler": "^4.51.0"
   },
   "dependencies": {
+    "//agents": "Required for Cloudflare Workers Durable Objects and MCP server infrastructure",
+    "@cloudflare/workers-oauth-provider": "^0.0.10",
     "@cloudflare/workers-types": "^4.20251128.0",
-    "@modelcontextprotocol/sdk": "^1.23.0"
+    "@modelcontextprotocol/sdk": "^1.24.0",
+    "agents": "^0.2.26",
+    "hono": "^4.10.7",
+    "octokit": "^5.0.5",
+    "uuid": "^13.0.0"
+  },
+  "overrides": {
+    "@octokit/request": "^10.0.7",
+    "@octokit/endpoint": "^11.0.2"
   }
 }
