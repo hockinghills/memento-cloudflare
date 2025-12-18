@@ -15,6 +15,29 @@ const NINETY_DAYS_IN_SECONDS = 7776000; // 90 days - shorter for security
 // --- Helper Functions ---
 
 /**
+ * Encodes a string to URL-safe base64.
+ * @param data - The string to encode.
+ * @returns A URL-safe base64 encoded string.
+ */
+function urlSafeBase64Encode(data: string): string {
+	const base64 = btoa(data);
+	return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
+ * Decodes a URL-safe base64 string (backward compatible with standard base64).
+ * @param encoded - The URL-safe base64 encoded string.
+ * @returns The decoded string.
+ */
+function urlSafeBase64Decode(encoded: string): string {
+	let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+	while (base64.length % 4) {
+		base64 += '=';
+	}
+	return atob(base64);
+}
+
+/**
  * Encodes arbitrary data to a URL-safe base64 string.
  * @param data - The data to encode (will be stringified).
  * @returns A URL-safe base64 encoded string.
@@ -207,7 +230,7 @@ async function getApprovedClientsFromCookie(
 	const [signatureHex, base64Payload] = parts;
 	let payload: string;
 	try {
-		payload = atob(base64Payload);
+		payload = urlSafeBase64Decode(base64Payload);
 	} catch {
 		console.warn("Invalid base64 in cookie payload.");
 		return null;
@@ -691,7 +714,7 @@ export async function parseRedirectApproval(
 	const payload = JSON.stringify(updatedApprovedClients);
 	const key = await importKey(cookieSecret);
 	const signature = await signData(key, payload);
-	const newCookieValue = `${signature}.${btoa(payload)}`; // signature.base64(payload)
+	const newCookieValue = `${signature}.${urlSafeBase64Encode(payload)}`;
 
 	// Generate Set-Cookie header
 	const headers: Record<string, string> = {
