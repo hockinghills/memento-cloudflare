@@ -308,6 +308,8 @@ export async function renderApprovalDialog(request: Request, options: ApprovalDi
 	const serverDescription = server.description ? sanitizeHtml(server.description) : "";
 
 	// URL validation helper with SSRF protection
+	// Note: DNS rebinding (domains resolving to private IPs) cannot be prevented at
+	// URL validation time without DNS resolution, which introduces TOCTOU race conditions.
 	function isValidHttpUrl(urlString: string): boolean {
 		try {
 			const url = new URL(urlString);
@@ -315,7 +317,15 @@ export async function renderApprovalDialog(request: Request, options: ApprovalDi
 			if (url.protocol !== 'http:' && url.protocol !== 'https:') {
 				return false;
 			}
+			// Block URLs with embedded credentials
+			if (url.username || url.password) {
+				return false;
+			}
 			const hostname = url.hostname.toLowerCase();
+			// Block alternative IP representations (decimal, octal, hex) that bypass hostname checks
+			if (/^\d+$/.test(hostname) || /^0[0-7]+\./.test(hostname) || /^0x[0-9a-f]+\./i.test(hostname)) {
+				return false;
+			}
 			// Block localhost and loopback (full 127.0.0.0/8 range, not just 127.0.0.1)
 			if (hostname === 'localhost' || hostname.startsWith('127.') || hostname === '[::1]' || hostname === '::1' || hostname === '0.0.0.0') {
 				return false;
