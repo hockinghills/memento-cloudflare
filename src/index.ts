@@ -89,4 +89,9 @@ export default new OAuthProvider({
   clientRegistrationEndpoint: "/register",
   defaultHandler: defaultHandler,
   tokenEndpoint: "/token",
+  // Enable refresh tokens with 30-day TTL
+  // Without this, tokens expire and cannot be refreshed
+  refreshTokenTTL: 2592000, // 30 days in seconds
+  // Access tokens expire after 1 hour, then refresh is triggered
+  accessTokenTTL: 3600, // 1 hour in seconds
 });
