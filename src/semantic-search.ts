@@ -9,6 +9,7 @@
  */
 
 import { Neo4jHttpClient } from './neo4j-client';
+import { formatTimestamp } from './utils/date-utils';
 
 export interface SearchOptions {
   limit?: number;
@@ -26,6 +27,8 @@ export interface Entity {
   version?: number;
   createdAt?: number;
   updatedAt?: number;
+  created?: string | null;  // Human-readable date
+  updated?: string | null;  // Human-readable date
 }
 
 export interface Relation {
@@ -231,6 +234,8 @@ export async function hybridSearchWithRRF(
         version: e.version,
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
+        created: formatTimestamp(e.createdAt),
+        updated: formatTimestamp(e.updatedAt),
       })),
       relations: relations.map((r) => ({
         from: r.fromName,
@@ -347,6 +352,8 @@ export async function vectorSearch(
         version: e.version,
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
+        created: formatTimestamp(e.createdAt),
+        updated: formatTimestamp(e.updatedAt),
       })),
       relations: relations.map((r) => ({
         from: r.fromName,

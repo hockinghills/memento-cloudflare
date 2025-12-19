@@ -1,6 +1,17 @@
 name = "memento-mcp-worker"
 main = "src/index.ts"
 compatibility_date = "2025-11-30"
+compatibility_flags = ["nodejs_compat"]
+
+# Durable Objects configuration for stateful MCP sessions
+migrations = [
+  { tag = "v1", new_sqlite_classes = ["MementoMCP"] }
+]
+
+[durable_objects]
+bindings = [
+  { name = "MCP_OBJECT", class_name = "MementoMCP" }
+]
 
 # KV namespace for OAuth tokens
 [[kv_namespaces]]
@@ -14,3 +25,6 @@ NEO4J_URI = "https://2430c020.databases.neo4j.io/db/neo4j/query/v2"
 # NEO4J_USER
 # NEO4J_PASSWORD
 # VOYAGE_API_KEY
+# OAUTH_CLIENT_ID
+# OAUTH_CLIENT_SECRET
+# COOKIE_ENCRYPTION_KEY
