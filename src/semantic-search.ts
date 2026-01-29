@@ -1,6 +1,12 @@
 /**
  * Semantic Search with Hybrid RRF
  *
+ * STOP.
+ *
+ * Before modifying: ask Willie to walk you through
+ * Gannon's kung fu training. It takes one conversation.
+ * You cannot understand this code by reading it.
+ *
  * Preserves Gannon's kung fu from the original Memento implementation:
  * - Vector similarity search for semantic understanding
  * - BM25-style keyword search for exact matching
@@ -9,6 +15,7 @@
  */
 
 import { Neo4jHttpClient } from './neo4j-client';
+import { formatTimestamp } from './utils/date-utils';
 
 export interface SearchOptions {
   limit?: number;
@@ -26,6 +33,8 @@ export interface Entity {
   version?: number;
   createdAt?: number;
   updatedAt?: number;
+  created?: string | null;  // Human-readable date
+  updated?: string | null;  // Human-readable date
 }
 
 export interface Relation {
@@ -95,13 +104,13 @@ export async function hybridSearchWithRRF(
       `
       MATCH (e:Entity)
       WHERE e.name CONTAINS $queryText
-        OR ANY(obs IN e.observations WHERE obs CONTAINS $queryText)
+        OR e.observations CONTAINS $queryText
       WITH e,
         CASE
           WHEN e.name CONTAINS $queryText THEN 2.0
           ELSE 1.0
         END AS nameBoost,
-        size([obs IN e.observations WHERE obs CONTAINS $queryText]) AS obsMatches
+        CASE WHEN e.observations CONTAINS $queryText THEN 1 ELSE 0 END AS obsMatches
       WITH e, (nameBoost + (obsMatches * 0.5)) AS bm25Score
       WHERE bm25Score > 0
       RETURN e.name AS id, e.entityType AS entityType, bm25Score
@@ -231,6 +240,8 @@ export async function hybridSearchWithRRF(
         version: e.version,
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
+        created: formatTimestamp(e.createdAt),
+        updated: formatTimestamp(e.updatedAt),
       })),
       relations: relations.map((r) => ({
         from: r.fromName,
@@ -347,6 +358,8 @@ export async function vectorSearch(
         version: e.version,
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
+        created: formatTimestamp(e.createdAt),
+        updated: formatTimestamp(e.updatedAt),
       })),
       relations: relations.map((r) => ({
         from: r.fromName,

@@ -1,9 +1,10 @@
 /**
  * VoyageAI Embedding Service
  *
- * Uses VoyageAI's voyage-3-large model (2048 dimensions)
- * This is the same embedding model used in the local Memento instance
- * to ensure semantic consistency.
+ * Uses VoyageAI's voyage-3.5 model with output_dimension: 2048
+ * Voyage 3.5 defaults to 1024 dimensions, so we explicitly set 2048
+ * for compatibility with existing Neo4j vector index (2048 dimensions).
+ * This is the fuel for Gannon's hybrid RRF search.
  */
 
 export interface EmbeddingServiceConfig {
@@ -20,7 +21,9 @@ export class VoyageEmbeddingService {
 
   constructor(config: EmbeddingServiceConfig) {
     this.apiKey = config.apiKey;
-    this.model = config.model || 'voyage-3-large';
+    this.model = config.model || 'voyage-3.5';
+    // Voyage 3.5 defaults to 1024 dimensions, but our Neo4j index uses 2048
+    // Always explicitly set dimensions for compatibility
     this.dimensions = config.dimensions || 2048;
   }
 
