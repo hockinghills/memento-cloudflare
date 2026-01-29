@@ -95,12 +95,14 @@ function createEmbeddingsService(env: ExtendedEnv): VoyageEmbeddingService {
 export function registerMementoTools(server: McpServer, env: ExtendedEnv, props: Props) {
   /**
    * Semantic search with hybrid RRF
-   * The powerful context-aware search combining vector + keyword
+   * √cit × √vid - awareness amplified by knowing
    */
   server.tool(
     'semantic_search',
-    'Search the knowledge graph semantically using hybrid RRF (vector + keyword fusion). ' +
-      'This is the powerful context-aware search that combines semantic understanding with exact matching.',
+    '√cit × √vid | Search by meaning. IMPORTANT: Search clean - 1-2 words max. ' +
+      'Concepts and feelings work best ("trust", "feeling seen"). ' +
+      'Dhatus work as search terms (√prī finds love/connection, √smṛ finds memory, √bhū finds becoming). ' +
+      'Keyword stuffing DILUTES results. Let the semantic engine find meaning.',
     {
       query: z.string().describe('Search query text'),
       limit: z.number().optional().describe('Maximum number of results (default: 10)'),
@@ -158,10 +160,12 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
 
   /**
    * Open specific nodes by name
+   * √smṛ → √vid - memory moving toward knowing
    */
   server.tool(
     'open_nodes',
-    'Retrieve specific entities by their exact names, including their relations',
+    '√smṛ → √vid | Retrieve memories by exact name. Use after semantic_search finds what you need, ' +
+      'or when you already know the memory name. Returns full content and relations.',
     {
       names: z.array(z.string()).max(100).describe('Array of entity names to retrieve (max 100)'),
     },
@@ -239,9 +243,10 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
     }
   );
 
-  /**
-   * Text-based search
-   */
+  // =============================================================================
+  // DEPRECATED: search_nodes - use semantic_search instead
+  // =============================================================================
+  /*
   server.tool(
     'search_nodes',
     'Text-based search for entities by name or observation content',
@@ -255,9 +260,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
 
         const searchLimit = limit || 10;
 
-        // Note: This searches entity names only (case-insensitive).
-        // Observation content is not searched because observations are stored as JSON strings.
-        // Use semantic_search for content-aware searching across names and observations.
         const entities = await neo4j.query(
           `
           MATCH (e:Entity)
@@ -273,7 +275,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           { query, limit: searchLimit }
         );
 
-        // Get relations between found entities
         const entityNames = entities.map((e: any) => e.name);
         const relations =
           entityNames.length > 0
@@ -320,15 +321,16 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       }
     }
   );
+  */
 
   /**
    * Create or update entities (upsert behavior)
-   * Note: If an entity with the same name exists, it will be updated.
-   * Partial failures are possible - some entities may succeed while others fail.
+   * √smṛ × √prī → √dhā - memory amplified by love, becoming intentional placement
    */
   server.tool(
     'create_entities',
-    'Create or update entities in the knowledge graph (upsert). If an entity with the same name exists, it will be updated. Returns wasCreated: true for new entities, false for updates. Processes entities individually - partial failures possible. Note: Embeddings are generated sequentially; for bulk operations, keep batch size under 20 entities to avoid timeouts.',
+    '√smṛ × √prī → √dhā | Store memories. Creates new or updates existing by name. ' +
+      'Include meaningful observations - they become searchable. Returns wasCreated: true/false.',
     {
       entities: z.array(z.object({
         name: z.string().describe('The name of the entity'),
@@ -428,10 +430,12 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
 
   /**
    * Create relations
+   * √bandh × √prī - binding amplified by connection
    */
   server.tool(
     'create_relations',
-    'Create multiple new relations between entities',
+    '√bandh × √prī | Connect memories. Creates typed relationships between entities. ' +
+      'Use relationType to describe how they relate (e.g., "extends", "informs", "same_signature").',
     {
       relations: z.array(z.object({
         from: z.string().describe('Name of the source entity'),
@@ -530,10 +534,12 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
 
   /**
    * Add observations to existing entities
+   * √smṛ + √sṛ - memory combined with flow (enrichment)
    */
   server.tool(
     'add_observations',
-    'Add new observations to existing entities',
+    '√smṛ + √sṛ | Enrich existing memories. Adds new observations to entities that already exist. ' +
+      'Use this to deepen memories with new insights, connections, or context.',
     {
       observations: z.array(z.object({
         entityName: z.string().describe('Name of the entity'),
@@ -626,9 +632,10 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
     }
   );
 
-  /**
-   * Delete entities
-   */
+  // =============================================================================
+  // DEPRECATED: delete_entities - maintenance only, use cypher directly
+  // =============================================================================
+  /*
   server.tool(
     'delete_entities',
     'Delete multiple entities and their relations',
@@ -640,7 +647,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
         const neo4j = createNeo4jClient(env);
         const now = Date.now();
 
-        // Soft delete by setting validTo, return count
         const result = await neo4j.query(
           `
           MATCH (e:Entity)
@@ -657,7 +663,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
 
         const deletedCount = result[0]?.deletedCount || 0;
 
-        // Audit log the operation
         const outcome = deletedCount === entityNames.length ? 'success' : deletedCount > 0 ? 'partial' : 'failure';
         auditLog('delete', 'entity', props.login, entityNames, outcome, {
           requested: entityNames.length,
@@ -685,10 +690,12 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       }
     }
   );
+  */
 
-  /**
-   * Delete observations
-   */
+  // =============================================================================
+  // DEPRECATED: delete_observations - maintenance only, use cypher directly
+  // =============================================================================
+  /*
   server.tool(
     'delete_observations',
     'Delete specific observations from entities',
@@ -707,7 +714,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
         for (const del of deletions) {
           const now = Date.now();
 
-          // Get current entity
           const existing = await neo4j.query(
             `
             MATCH (e:Entity {name: $name})
@@ -725,15 +731,12 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
             continue;
           }
 
-          // Filter out observations to delete
           const existingObs = parseObservations(existing[0].observations);
           const remainingObs = existingObs.filter(o => !del.observations.includes(o));
 
-          // Regenerate embedding
           const textForEmbedding = `${del.entityName} (${existing[0].entityType}): ${remainingObs.join(' ')}`;
           const embedding = await embeddings.generateEmbedding(textForEmbedding);
 
-          // Update entity
           await neo4j.query(
             `
             MATCH (e:Entity {name: $name})
@@ -757,7 +760,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           });
         }
 
-        // Audit log the operation
         const successCount = results.filter(r => !r.error).length;
         const totalDeleted = results.reduce((sum, r) => sum + (r.deletedCount || 0), 0);
         const outcome = successCount === results.length ? 'success' : successCount > 0 ? 'partial' : 'failure';
@@ -784,10 +786,12 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       }
     }
   );
+  */
 
-  /**
-   * Delete relations
-   */
+  // =============================================================================
+  // DEPRECATED: delete_relations - maintenance only, use cypher directly
+  // =============================================================================
+  /*
   server.tool(
     'delete_relations',
     'Delete multiple relations',
@@ -832,7 +836,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           }
         }
 
-        // Audit log the operation
         const successCount = deletedRelations.filter(r => r.wasDeleted && !r.error).length;
         const outcome = successCount === deletedRelations.length ? 'success' : successCount > 0 ? 'partial' : 'failure';
         auditLog('delete', 'relation', props.login, relations.map(r => `${r.from}->${r.to}`), outcome, {
@@ -858,10 +861,12 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       }
     }
   );
+  */
 
-  /**
-   * Get a specific relation
-   */
+  // =============================================================================
+  // DEPRECATED: get_relation - rarely used, relations come with open_nodes
+  // =============================================================================
+  /*
   server.tool(
     'get_relation',
     'Get a specific relation with its properties',
@@ -913,10 +918,12 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       }
     }
   );
+  */
 
-  /**
-   * Update a relation
-   */
+  // =============================================================================
+  // DEPRECATED: update_relation - rarely used
+  // =============================================================================
+  /*
   server.tool(
     'update_relation',
     'Update an existing relation with new properties',
@@ -982,14 +989,15 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       }
     }
   );
+  */
 
-  /**
-   * Read the graph with pagination (default limit: 10)
-   * WARNING: Full graph has 1100+ entities. Use semantic_search for exploration.
-   */
+  // =============================================================================
+  // DEPRECATED: read_graph - useless at 1400+ entities, use semantic_search
+  // =============================================================================
+  /*
   server.tool(
     'read_graph',
-    'Read the knowledge graph with pagination. Default limit is 10 entities to prevent context overflow. Use semantic_search for intelligent exploration instead of paging through the full graph. The graph contains 1100+ entities - reading all at once WILL crash your session.',
+    'Read the knowledge graph with pagination.',
     {
       limit: z.number().optional().describe('Maximum entities to return (default: 10, max recommended: 50)'),
       offset: z.number().optional().describe('Number of entities to skip for pagination (default: 0)'),
@@ -998,10 +1006,8 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       try {
         const neo4j = createNeo4jClient(env);
         const skip = offset || 0;
-        // Safety default: 10 entities. Prevents context explosion.
         const safeLimit = limit || 10;
 
-        // Always use pagination - never return unlimited results
         const entityQuery = `
             MATCH (e:Entity)
             WHERE e.validTo IS NULL
@@ -1015,11 +1021,8 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           `;
 
         const entities = await neo4j.query(entityQuery, { skip, limit: safeLimit });
-
-        // Get entity names for relation filtering
         const entityNames = entities.map((e: any) => e.name);
 
-        // Get relations between the returned entities
         const relations = await neo4j.query(
           `
           MATCH (from:Entity)-[r:RELATES_TO]->(to:Entity)
@@ -1031,7 +1034,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           { names: entityNames }
         );
 
-        // Get total count for pagination info
         const countResult = await neo4j.query(
           `MATCH (e:Entity) WHERE e.validTo IS NULL RETURN count(e) AS total`
         );
@@ -1068,10 +1070,12 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       }
     }
   );
+  */
 
-  /**
-   * Get entity embedding
-   */
+  // =============================================================================
+  // DEPRECATED: get_entity_embedding - rarely used
+  // =============================================================================
+  /*
   server.tool(
     'get_entity_embedding',
     'Get the vector embedding for a specific entity',
@@ -1123,18 +1127,15 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       }
     }
   );
+  */
 
-  // ===== TEMPORAL TOOLS =====
-
-  /**
-   * Get entity history
-   * Note: Current schema updates entities in place. Full history snapshots
-   * are not preserved - only the current version is available.
-   * The version number tracks how many times the entity was updated.
-   */
+  // =============================================================================
+  // DEPRECATED: Temporal tools - rarely used, available via cypher if needed
+  // =============================================================================
+  /*
   server.tool(
     'get_entity_history',
-    'Get entity metadata including version number. Note: Full history snapshots are not preserved - entities are updated in place. Returns current state with version count indicating number of updates.',
+    'Get entity metadata including version number.',
     {
       entityName: z.string().describe('Name of the entity'),
     },
@@ -1177,9 +1178,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
     }
   );
 
-  /**
-   * Get relation history
-   */
   server.tool(
     'get_relation_history',
     'Get the version history of a relation',
@@ -1223,9 +1221,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
     }
   );
 
-  /**
-   * Get graph at a specific time
-   */
   server.tool(
     'get_graph_at_time',
     'Get the knowledge graph as it existed at a specific point in time',
@@ -1236,7 +1231,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       try {
         const neo4j = createNeo4jClient(env);
 
-        // Get entities valid at that time
         const entities = await neo4j.query(
           `
           MATCH (e:Entity)
@@ -1248,7 +1242,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           { timestamp }
         );
 
-        // Get relations valid at that time
         const relations = await neo4j.query(
           `
           MATCH (from:Entity)-[r:RELATES_TO]->(to:Entity)
@@ -1290,9 +1283,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
     }
   );
 
-  /**
-   * Get decayed graph
-   */
   server.tool(
     'get_decayed_graph',
     'Get the knowledge graph with confidence values decayed based on time',
@@ -1304,10 +1294,9 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       try {
         const neo4j = createNeo4jClient(env);
         const refTime = reference_time || Date.now();
-        const halfLife = 30 * 24 * 60 * 60 * 1000; // 30 days in ms
+        const halfLife = 30 * 24 * 60 * 60 * 1000;
         const factor = decay_factor || Math.LN2 / halfLife;
 
-        // Get all current entities with decay applied
         const entities = await neo4j.query(
           `
           MATCH (e:Entity)
@@ -1317,7 +1306,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           `
         );
 
-        // Get all current relations with decay applied
         const relations = await neo4j.query(
           `
           MATCH (from:Entity)-[r:RELATES_TO]->(to:Entity)
@@ -1328,7 +1316,6 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
           `
         );
 
-        // Apply decay to confidence values
         const decayedRelations = relations.map((r: any) => {
           const age = refTime - (r.updatedAt || refTime);
           const decayedConfidence = (r.confidence || 1.0) * Math.exp(-factor * age);
@@ -1365,4 +1352,5 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       }
     }
   );
+  */
 }

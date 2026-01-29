@@ -3,14 +3,17 @@ main = "src/index.ts"
 compatibility_date = "2025-11-30"
 compatibility_flags = ["nodejs_compat"]
 
+# Logpush disabled - requires Enterprise
+
 # Durable Objects configuration for stateful MCP sessions
 migrations = [
-  { tag = "v1", new_sqlite_classes = ["MementoMCP"] }
+  { tag = "v1", new_sqlite_classes = ["MementoMCP"] },
+  { tag = "v2", new_sqlite_classes = ["MementoMCP2"] }
 ]
 
 [durable_objects]
 bindings = [
-  { name = "MCP_OBJECT", class_name = "MementoMCP" }
+  { name = "MCP_OBJECT", class_name = "MementoMCP2" }
 ]
 
 # KV namespace for OAuth tokens

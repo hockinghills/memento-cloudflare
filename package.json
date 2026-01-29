@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "node test-vector-http.js"
+    "test": "node test-vector-http.js",
+    "migrate:embeddings": "tsx scripts/migrate-embeddings.ts"
   },
   "keywords": [
     "mcp",
@@ -22,11 +23,11 @@
     "@types/node": "^24.10.1",
     "@types/uuid": "^11.0.0",
     "dotenv": "^17.2.3",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "wrangler": "^4.51.0"
   },
   "dependencies": {
-    "//agents": "Required for Cloudflare Workers Durable Objects and MCP server infrastructure",
     "@cloudflare/workers-oauth-provider": "^0.0.10",
     "@cloudflare/workers-types": "^4.20251128.0",
     "@modelcontextprotocol/sdk": "^1.24.0",

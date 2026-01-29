@@ -17,7 +17,7 @@ import { registerAllTools } from "./tools/register-tools";
  * Memento MCP Agent
  * Stateful Durable Object for maintaining MCP sessions
  */
-export class MementoMCP extends McpAgent<ExtendedEnv, Record<string, never>, Props> {
+export class MementoMCP2 extends McpAgent<ExtendedEnv, Record<string, never>, Props> {
   server = new McpServer({
     name: "Memento Knowledge Graph MCP Server",
     version: "1.0.0",
@@ -34,6 +34,7 @@ export class MementoMCP extends McpAgent<ExtendedEnv, Record<string, never>, Pro
       throw error; // Re-throw to prevent silently broken DO
     }
   }
+
 }
 
 /**
@@ -48,13 +49,13 @@ interface TypedHandler {
 
 const sseHandler: TypedHandler = {
   fetch(request: Request, env: ExtendedEnv, ctx: ExecutionContext): Promise<Response> {
-    return MementoMCP.serveSSE('/sse').fetch(request, env, ctx);
+    return MementoMCP2.serveSSE('/sse').fetch(request, env, ctx);
   }
 };
 
 const mcpHandler: TypedHandler = {
   fetch(request: Request, env: ExtendedEnv, ctx: ExecutionContext): Promise<Response> {
-    return MementoMCP.serve('/mcp').fetch(request, env, ctx);
+    return MementoMCP2.serve('/mcp').fetch(request, env, ctx);
   }
 };
 
