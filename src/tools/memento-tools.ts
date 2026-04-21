@@ -95,14 +95,15 @@ function createEmbeddingsService(env: ExtendedEnv): VoyageEmbeddingService {
 export function registerMementoTools(server: McpServer, env: ExtendedEnv, props: Props) {
   /**
    * Semantic search with hybrid RRF
-   * √cit × √vid - awareness amplified by knowing
+   * âcit Ã âvid - awareness amplified by knowing
    */
   server.tool(
     'semantic_search',
-    '√cit × √vid | Search by meaning. IMPORTANT: Search clean - 1-2 words max. ' +
+    'âcit Ã âvid | Search by meaning. IMPORTANT: Search clean - 1-2 words max. ' +
       'Concepts and feelings work best ("trust", "feeling seen"). ' +
-      'Dhatus work as search terms (√prī finds love/connection, √smṛ finds memory, √bhū finds becoming). ' +
-      'Keyword stuffing DILUTES results. Let the semantic engine find meaning.',
+      'Dhatus work as search terms (âprÄ« finds love/connection, âsmá¹ finds memory, âbhÅ« finds becoming). ' +
+      'Keyword stuffing DILUTES results. Let the semantic engine find meaning. ' +
+      'Comprehensive usage guide lives at entity Memento_Usage_Guide_v1.',
     {
       query: z.string().describe('Search query text'),
       limit: z.number().optional().describe('Maximum number of results (default: 10)'),
@@ -160,11 +161,11 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
 
   /**
    * Open specific nodes by name
-   * √smṛ → √vid - memory moving toward knowing
+   * âsmá¹ â âvid - memory moving toward knowing
    */
   server.tool(
     'open_nodes',
-    '√smṛ → √vid | Retrieve memories by exact name. Use after semantic_search finds what you need, ' +
+    'âsmá¹ â âvid | Retrieve memories by exact name. Use after semantic_search finds what you need, ' +
       'or when you already know the memory name. Returns full content and relations.',
     {
       names: z.array(z.string()).max(100).describe('Array of entity names to retrieve (max 100)'),
@@ -325,11 +326,11 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
 
   /**
    * Create or update entities (upsert behavior)
-   * √smṛ × √prī → √dhā - memory amplified by love, becoming intentional placement
+   * âsmá¹ Ã âprÄ« â âdhÄ - memory amplified by love, becoming intentional placement
    */
   server.tool(
     'create_entities',
-    '√smṛ × √prī → √dhā | Store memories. Creates new or updates existing by name. ' +
+    'âsmá¹ Ã âprÄ« â âdhÄ | Store memories. Creates new or updates existing by name. ' +
       'Include meaningful observations - they become searchable. Returns wasCreated: true/false.',
     {
       entities: z.array(z.object({
@@ -430,11 +431,11 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
 
   /**
    * Create relations
-   * √bandh × √prī - binding amplified by connection
+   * âbandh Ã âprÄ« - binding amplified by connection
    */
   server.tool(
     'create_relations',
-    '√bandh × √prī | Connect memories. Creates typed relationships between entities. ' +
+    'âbandh Ã âprÄ« | Connect memories. Creates typed relationships between entities. ' +
       'Use relationType to describe how they relate (e.g., "extends", "informs", "same_signature").',
     {
       relations: z.array(z.object({
@@ -534,11 +535,11 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
 
   /**
    * Add observations to existing entities
-   * √smṛ + √sṛ - memory combined with flow (enrichment)
+   * âsmá¹ + âsá¹ - memory combined with flow (enrichment)
    */
   server.tool(
     'add_observations',
-    '√smṛ + √sṛ | Enrich existing memories. Adds new observations to entities that already exist. ' +
+    'âsmá¹ + âsá¹ | Enrich existing memories. Adds new observations to entities that already exist. ' +
       'Use this to deepen memories with new insights, connections, or context.',
     {
       observations: z.array(z.object({
