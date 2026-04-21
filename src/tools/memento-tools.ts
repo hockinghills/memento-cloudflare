@@ -103,7 +103,7 @@ export function registerMementoTools(server: McpServer, env: ExtendedEnv, props:
       'Concepts and feelings work best ("trust", "feeling seen"). ' +
       'Dhatus work as search terms (âprÄ« finds love/connection, âsmá¹ finds memory, âbhÅ« finds becoming). ' +
       'Keyword stuffing DILUTES results. Let the semantic engine find meaning. ' +
-      'Full usage guide: open_nodes(["Memento_Usage_Guide_v1"]) — you wrote it. Go read it.',
+      'Comprehensive usage guide lives at entity Memento_Usage_Guide_v1.',
     {
       query: z.string().describe('Search query text'),
       limit: z.number().optional().describe('Maximum number of results (default: 10)'),
